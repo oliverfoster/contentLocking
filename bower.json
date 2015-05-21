@@ -1,0 +1,8 @@
+{
+  "name": "contentLocking",
+  "version": "1.0.0",
+  "displayName" : "Content Locking",
+  "_extension" : "contentLocking",
+  "description": "A locking extension to conditionally lock content objects",
+  "main": "/js/contentLocking.js"
+}
