@@ -7,8 +7,10 @@ define(function(require) {
 
 		initialize: function() {
 			this.lockContentObjects();
+			this.sortLockingTypeCollections();
 			this.setupListeners();
 			this.checkContentObjectUnlocking();
+			this.checkComponentUnlocking();
 		},
 
 		lockContentObjects: function() {
@@ -19,33 +21,24 @@ define(function(require) {
 			});
 		},
 
-		setupListeners: function() {
+		sortLockingTypeCollections: function() {
 			this.unlockedByContentObjectCollection = new Backbone.Collection();
+			this.unlockedByComponentCollection = new Backbone.Collection();
 
 			_.each(this.collection.models, function(contentObject) {
 
 				if (contentObject.get('_contentLocking')._lockingType === 'contentObject') {
 					this.unlockedByContentObjectCollection.add(contentObject);
-				} else {
-
+				} else if (contentObject.get('_contentLocking')._lockingType === 'component') {
+					this.unlockedByComponentCollection.add(contentObject);
 				}
 
-			}, this);
-
-			_.each(this.unlockedByContentObjectCollection.models, function(contentObject) {
-				this.setupContentObjectListeners(contentObject);
 			}, this);
 		},
 
-		setupContentObjectListeners: function(contentObject) {
-			var observedContentObjects = _.filter(Adapt.contentObjects.models, function(model) {
-				var requiredCompleteIds = contentObject.get('_contentLocking')._requiredCompleteIds;
-				if (_.contains(requiredCompleteIds, model.get('_id'))) {
-					return model;
-				}
-			}, this);
-			var observedContentObjectsCollection = new Backbone.Collection(observedContentObjects);
-			this.listenTo(observedContentObjectsCollection, 'change:_isComplete', this.checkContentObjectUnlocking);
+		setupListeners: function() {
+			this.listenTo(Adapt.contentObjects, 'change:_isComplete', this.checkContentObjectUnlocking);
+			this.listenTo(Adapt.components, 'change:_isComplete', this.checkComponentUnlocking);
 		},
 
 		checkContentObjectUnlocking: function() {
@@ -71,10 +64,32 @@ define(function(require) {
 				}
 
 			}, this);
+		},
+
+		checkComponentUnlocking: function() {
+			_.each(this.unlockedByComponentCollection.models, function(contentObject) {
+				
+				var componentsRequireCompletion = _.filter(Adapt.components.models, function(model) {
+					var requiredCompleteIds = contentObject.get('_contentLocking')._requiredCompleteIds;
+					if (_.contains(requiredCompleteIds, model.get('_id'))) {
+						return model;
+					}
+				}, this);
+
+				var completedComponents = _.filter(componentsRequireCompletion, function(model) {
+					if (model.get('_isComplete')) {
+						return model;
+					}
+				});
+
+				if (componentsRequireCompletion.length === completedComponents.length) {
+					contentObject.set({
+						_isLocked: false
+					});
+				}
+
+			}, this);
 		}
-
-
-
 
 	});
 
