@@ -18,7 +18,8 @@ define(function(require) {
 
 			if (filteredContentObjects.length > 0) {
 				new ContentLockingController({
-					collection: new Backbone.Collection(filteredContentObjects)
+					collection: new Backbone.Collection(filteredContentObjects),
+					unlockedNotifyMessage: contentLocking.unlockedNotifyMessage
 				});
 			}
 

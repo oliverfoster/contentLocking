@@ -5,18 +5,21 @@ define(function(require) {
 
 	var ContentLockingController = Backbone.View.extend({
 
-		initialize: function() {
+		initialize: function(options) {
+			this.options = options;
 			this.lockContentObjects();
 			this.sortLockingTypeCollections();
 			this.setupListeners();
-			this.checkContentObjectUnlocking();
-			this.checkComponentUnlocking();
 		},
 
 		lockContentObjects: function() {
 			_.each(this.collection.models, function(contentObject) {
+				var isLocked = true;
+				if (contentObject.get('_isVisited')) {
+					isLocked = false;
+				}
 				contentObject.set({
-					_isLocked: true
+					_isLocked: isLocked
 				});
 			});
 		},
@@ -43,6 +46,10 @@ define(function(require) {
 
 		checkContentObjectUnlocking: function() {
 			_.each(this.unlockedByContentObjectCollection.models, function(contentObject) {
+
+				if (!contentObject.get('_isLocked')) {
+					return;
+				}
 				
 				var contentObjectsRequireCompletion = _.filter(Adapt.contentObjects.models, function(model) {
 					var requiredCompleteIds = contentObject.get('_contentLocking')._requiredCompleteIds;
@@ -61,6 +68,7 @@ define(function(require) {
 					contentObject.set({
 						_isLocked: false
 					});
+					this.notifyUnLocking(contentObject);
 				}
 
 			}, this);
@@ -68,6 +76,10 @@ define(function(require) {
 
 		checkComponentUnlocking: function() {
 			_.each(this.unlockedByComponentCollection.models, function(contentObject) {
+
+				if (!contentObject.get('_isLocked')) {
+					return;
+				}
 				
 				var componentsRequireCompletion = _.filter(Adapt.components.models, function(model) {
 					var requiredCompleteIds = contentObject.get('_contentLocking')._requiredCompleteIds;
@@ -86,9 +98,21 @@ define(function(require) {
 					contentObject.set({
 						_isLocked: false
 					});
+					this.notifyUnLocking(contentObject);
 				}
 
 			}, this);
+		},
+
+		notifyUnLocking: function(model) {
+			var pushObject = {
+                title: model.get('title'),
+                body: this.options.unlockedNotifyMessage,
+                _timeout: 5000,
+                _callbackEvent: '',
+                _icon: 'icon-unlock'
+            };
+            Adapt.trigger('notify:push', pushObject);
 		}
 
 	});
